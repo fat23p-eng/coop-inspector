@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบตรวจข้อบังคับสหกรณ์</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', sans-serif; background: #f0f4f8; min-height: 100vh; }
+  .header { background: linear-gradient(135deg,#1a3a6c,#2e75b6); padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+  .header-title { color: #fff; font-weight: 700; font-size: 18px; }
+  .header-sub { color: rgba(255,255,255,0.7); font-size: 12px; margin-top: 2px; }
+  .container { max-width: 860px; margin: 0 auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 20px; }
+  .card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .card-title { font-weight: 700; font-size: 15px; color: #1a3a6c; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .dropzone { border: 2px dashed #cbd5e0; border-radius: 12px; padding: 32px 20px; text-align: center; cursor: pointer; transition: all .2s; background: #fafafa; margin-bottom: 16px; }
+  .dropzone:hover, .dropzone.drag { border-color: #2e75b6; background: #ebf3fb; }
+  .dropzone-icon { font-size: 36px; margin-bottom: 8px; }
+  .dropzone-text { font-weight: 600; color: #4a5568; font-size: 14px; }
+  .dropzone-sub { color: #a0aec0; font-size: 12px; margin-top: 4px; }
+  .file-selected { font-weight: 600; color: #2e75b6; font-size: 14px; }
+  .mode-row { display: flex; gap: 10px; margin-bottom: 16px; }
+  .mode-btn { flex: 1; padding: 10px 14px; border-radius: 10px; border: 2px solid #e2e8f0; background: #fff; color: #718096; font-weight: 500; font-size: 13px; cursor: pointer; transition: all .15s; font-family: inherit; }
+  .mode-btn.active { border-color: #2e75b6; background: #ebf3fb; color: #1a56a0; font-weight: 700; }
+  .upload-draft { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; cursor: pointer; background: #fafafa; display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .btn-main { width: 100%; padding: 14px; border-radius: 12px; border: none; background: linear-gradient(135deg,#1a56a0,#2e75b6); color: #fff; font-weight: 700; font-size: 15px; cursor: pointer; font-family: inherit; box-shadow: 0 4px 15px rgba(46,117,182,0.4); transition: all .2s; }
+  .btn-main:disabled { background: #e2e8f0; color: #a0aec0; box-shadow: none; cursor: not-allowed; }
+  .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid #e2e8f0; border-top: 3px solid #2e75b6; border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-area { margin-top: 12px; text-align: center; }
+  .loading-text { color: #718096; font-size: 12px; margin-top: 6px; }
+  .error-box { margin-top: 12px; padding: 12px 16px; background: #fadbd8; border-radius: 10px; color: #c0392b; font-size: 13px; }
+  .result-header { background: linear-gradient(135deg,#1a3a6c,#2e75b6); padding: 20px 24px; border-radius: 16px 16px 0 0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .score-ring-wrap { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+  .score-ring-wrap svg { transform: rotate(-90deg); }
+  .score-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(0deg); font-weight: 700; font-size: 20px; }
+  .result-info { flex: 1; min-width: 160px; }
+  .result-name { color: #fff; font-weight: 700; font-size: 16px; }
+  .result-type { color: rgba(255,255,255,0.7); font-size: 12px; margin-top: 2px; }
+  .status-badge { display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 13px; }
+  .bars-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
+  .bar-label { color: rgba(255,255,255,0.7); font-size: 11px; margin-bottom: 2px; }
+  .bar-track { flex: 1; height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+  .bar-val { font-size: 12px; font-weight: 700; min-width: 32px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; }
+  .summary-box { padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #4a5568; line-height: 1.7; }
+  .tabs { display: flex; border-bottom: 2px solid #e2e8f0; }
+  .tab-btn { flex: 1; padding: 12px 8px; border: none; background: transparent; font-weight: 500; font-size: 13px; color: #718096; border-bottom: 3px solid transparent; cursor: pointer; font-family: inherit; transition: all .15s; margin-bottom: -2px; }
+  .tab-btn.active { font-weight: 700; color: #2e75b6; border-bottom-color: #2e75b6; }
+  .tab-content { padding: 20px; max-height: 380px; overflow-y: auto; }
+  .issue-card { margin-bottom: 12px; padding: 14px 16px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fafafa; }
+  .sev-badge { padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; margin-right: 8px; }
+  .issue-title { font-weight: 600; font-size: 13px; color: #2d3748; }
+  .issue-detail { font-size: 12px; color: #718096; line-height: 1.6; margin-top: 6px; }
+  .diff-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .diff-table th { padding: 8px 10px; background: #2e75b6; color: #fff; text-align: left; font-weight: 600; }
+  .diff-table td { padding: 8px 10px; border-bottom: 1px solid #e2e8f0; color: #4a5568; }
+  .diff-table tr:nth-child(even) td { background: #fafafa; }
+  .diff-badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .rec-card { margin-bottom: 12px; display: flex; gap: 12px; padding: 14px 16px; border-radius: 12px; border: 1px solid #e2e8f0; background: #fafafa; align-items: flex-start; }
+  .rec-num { min-width: 28px; height: 28px; border-radius: 50%; background: #2e75b6; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+  .rec-action { font-weight: 600; font-size: 13px; color: #2d3748; margin-bottom: 4px; }
+  .rec-detail { font-size: 12px; color: #718096; line-height: 1.6; }
+  .opinion-area { padding: 16px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc; }
+  .opinion-label { font-size: 13px; font-weight: 600; color: #4a5568; margin-bottom: 8px; }
+  textarea { width: 100%; min-height: 80px; padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 13px; font-family: inherit; resize: vertical; outline: none; }
+  .btn-row { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+  .btn-copy { padding: 9px 18px; border-radius: 10px; border: none; background: #2e75b6; color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .btn-csv { padding: 9px 18px; border-radius: 10px; border: 1px solid #2e75b6; background: #fff; color: #2e75b6; font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .empty-msg { text-align: center; padding: 32px; color: #68d391; font-size: 15px; }
+  .api-note { background: #fff3cd; border-radius: 10px; padding: 12px 16px; font-size: 12px; color: #856404; margin-bottom: 16px; line-height: 1.6; }
+  .api-input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 13px; font-family: inherit; outline: none; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span style="font-size:28px">⚖️</span>
+  <div>
+    <div class="header-title">ระบบตรวจข้อบังคับสหกรณ์</div>
+    <div class="header-sub">กรมส่งเสริมสหกรณ์ · ขับเคลื่อนด้วย Claude AI</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- API KEY CARD -->
+  <div class="card" id="apiCard">
+    <div class="card-title">🔑 ตั้งค่า API Key</div>
+    <div class="api-note">
+      ระบบนี้ใช้ Anthropic API ในการวิเคราะห์ข้อบังคับ<br>
+      กรอก API Key ครั้งเดียว จะจำไว้ตลอดการใช้งานในหน้านี้<br>
+      ขอ Key ได้ที่ <strong>console.anthropic.com</strong>
+    </div>
+    <input type="password" id="apiKeyInput" class="api-input" placeholder="sk-ant-api03-...">
+    <button onclick="saveApiKey()" class="btn-main" style="margin-top:10px">💾 บันทึก API Key</button>
+    <div id="apiStatus" style="margin-top:8px;font-size:12px;color:#1a7a4a"></div>
+  </div>
+
+  <!-- UPLOAD CARD -->
+  <div class="card">
+    <div class="card-title">📂 อัปโหลดข้อบังคับสหกรณ์</div>
+
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()"
+      ondragover="event.preventDefault();this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="handleDrop(event)">
+      <input type="file" id="fileInput" accept=".pdf" style="display:none" onchange="handleFile(this.files[0])">
+      <div class="dropzone-icon" id="dropIcon">☁️</div>
+      <div class="dropzone-text" id="dropText">ลากไฟล์ PDF มาวาง หรือแตะเพื่อเลือก</div>
+      <div class="dropzone-sub" id="dropSub">รองรับไฟล์ PDF ขนาดไม่เกิน 32MB</div>
+    </div>
+
+    <div class="mode-row">
+      <button class="mode-btn active" id="modeBuiltin" onclick="setMode('builtin')">📋 ร่างในระบบ (พ.ศ. 2566)</button>
+      <button class="mode-btn" id="modeUpload" onclick="setMode('upload')">📤 อัปโหลดร่างเอง</button>
+    </div>
+
+    <div id="draftUploadArea" style="display:none">
+      <div class="upload-draft" onclick="document.getElementById('draftInput').click()">
+        <input type="file" id="draftInput" accept=".pdf" style="display:none" onchange="handleDraftFile(this.files[0])">
+        <span style="font-size:20px">📑</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#4a5568" id="draftFileName">แตะเพื่อเลือกไฟล์ร่างมาตรฐาน</div>
+          <div style="font-size:11px;color:#a0aec0">ไฟล์ PDF ร่างข้อบังคับมาตรฐาน</div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-main" id="analyzeBtn" onclick="analyze()" disabled>🔍 ตรวจข้อบังคับ</button>
+
+    <div class="loading-area" id="loadingArea" style="display:none">
+      <div class="spinner"></div>
+      <div class="loading-text">AI กำลังวิเคราะห์ข้อบังคับ กรุณารอ 15–30 วินาที...</div>
+    </div>
+
+    <div class="error-box" id="errorBox" style="display:none"></div>
+  </div>
+
+  <!-- RESULT CARD -->
+  <div id="resultCard" style="display:none; background:#fff; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,0.08); overflow:hidden;">
+
+    <div class="result-header" id="resultHeader"></div>
+    <div class="summary-box" id="summaryBox"></div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="setTab('issues')" id="tabIssues">🚨 ปัญหา</button>
+      <button class="tab-btn" onclick="setTab('diffs')" id="tabDiffs">🔄 เปรียบเทียบ</button>
+      <button class="tab-btn" onclick="setTab('recs')" id="tabRecs">💡 แนะนำ</button>
+    </div>
+
+    <div class="tab-content" id="tabContent"></div>
+
+    <div class="opinion-area">
+      <div class="opinion-label">💬 ความเห็นเจ้าหน้าที่</div>
+      <textarea id="opinionText" placeholder="พิมพ์ความเห็นเพิ่มเติม เช่น ข้อสังเกต ประเด็นที่ต้องติดตาม..."></textarea>
+      <div class="btn-row">
+        <button class="btn-copy" onclick="copyResult()">📋 คัดลอกผลทั้งหมด</button>
+        <button class="btn-csv" onclick="downloadCSV()">📥 ดาวน์โหลด CSV</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const BUILTIN_DRAFT = `ร่างข้อบังคับสหกรณ์ออมทรัพย์มาตรฐาน พ.ศ. 2566
+หมวด 1 ชื่อและที่ตั้ง
+ข้อ 1. สหกรณ์นี้มีชื่อว่า "สหกรณ์ออมทรัพย์ [ชื่อ] จำกัด"
+ข้อ 2. ที่ตั้งสำนักงานใหญ่ตั้งอยู่ที่...
+หมวด 2 วัตถุประสงค์และขอบเขตการดำเนินกิจการ
+ข้อ 3. วัตถุประสงค์: ส่งเสริมผลประโยชน์ทางเศรษฐกิจและสังคมของสมาชิก
+(1) ดำเนินธุรกิจและการบริการเพื่อประโยชน์ของสมาชิก
+(2) ให้สวัสดิการตามสมควรแก่สมาชิกและครอบครัว
+(3) ให้ความช่วยเหลือทางวิชาการแก่สมาชิก
+(4) รับฝากเงินประเภทออมทรัพย์หรือประจำจากสมาชิก
+(5) ให้กู้ ให้ยืม ให้เช่า ให้เช่าซื้อ โอน รับจำนอง แก่สมาชิก
+(6) ซื้อหลักทรัพย์ของรัฐบาลหรือรัฐวิสาหกิจ
+(7) ฝากเงินในธนาคารหรือสถาบันการเงิน
+(8) ดำเนินกิจการอื่นที่เกี่ยวข้องกับวัตถุประสงค์
+หมวด 3 ทุน - หมวด 4 สมาชิก - หมวด 5 หุ้น - หมวด 6 การดำเนินงาน - หมวด 7 การเงินและบัญชี - หมวด 8 การเลิกสหกรณ์`;
+
+let coopFile = null, draftFile = null, mode = 'builtin', result = null, currentTab = 'issues';
+let apiKey = sessionStorage.getItem('anthropic_key') || '';
+
+if (apiKey) {
+  document.getElementById('apiKeyInput').value = apiKey;
+  document.getElementById('apiStatus').textContent = '✅ API Key บันทึกแล้ว';
+}
+
+function saveApiKey() {
+  const k = document.getElementById('apiKeyInput').value.trim();
+  if (!k.startsWith('sk-')) { alert('API Key ไม่ถูกต้อง ต้องขึ้นต้นด้วย sk-'); return; }
+  apiKey = k;
+  sessionStorage.setItem('anthropic_key', k);
+  document.getElementById('apiStatus').textContent = '✅ บันทึกแล้ว พร้อมใช้งาน';
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('modeBuiltin').className = 'mode-btn' + (m==='builtin'?' active':'');
+  document.getElementById('modeUpload').className  = 'mode-btn' + (m==='upload'?' active':'');
+  document.getElementById('draftUploadArea').style.display = m==='upload' ? 'block' : 'none';
+}
+
+function handleFile(f) {
+  if (!f || f.type !== 'application/pdf') { alert('กรุณาเลือกไฟล์ PDF'); return; }
+  coopFile = f;
+  document.getElementById('dropIcon').textContent = '📄';
+  document.getElementById('dropText').innerHTML = `<span class="file-selected">${f.name}</span>`;
+  document.getElementById('dropSub').textContent = `${(f.size/1024).toFixed(0)} KB · แตะเพื่อเปลี่ยนไฟล์`;
+  document.getElementById('analyzeBtn').disabled = false;
+}
+
+function handleDraftFile(f) {
+  draftFile = f;
+  document.getElementById('draftFileName').textContent = f.name;
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+}
+
+function toB64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('อ่านไฟล์ไม่ได้'));
+    r.readAsDataURL(file);
+  });
+}
+
+async function analyze() {
+  if (!coopFile) return;
+  if (!apiKey) { alert('กรุณากรอก API Key ก่อน'); return; }
+  if (mode === 'upload' && !draftFile) { showError('กรุณาอัปโหลดไฟล์ร่างมาตรฐานด้วย'); return; }
+
+  document.getElementById('loadingArea').style.display = 'block';
+  document.getElementById('analyzeBtn').disabled = true;
+  document.getElementById('errorBox').style.display = 'none';
+  document.getElementById('resultCard').style.display = 'none';
+
+  try {
+    const b64 = await toB64(coopFile);
+    const draftText = mode === 'upload' ? `[ร่างจากไฟล์: ${draftFile.name}]` : BUILTIN_DRAFT;
+
+    const prompt = `ร่างมาตรฐาน:\n${draftText}\n\nตรวจข้อบังคับสหกรณ์แนบมาและตอบเฉพาะ JSON:\n{"coopName":"ชื่อ","coopType":"ประเภท","score":85,"overallStatus":"pass","summary":"สรุป","draftMatchScore":80,"lawComplianceScore":90,"regulationComplianceScore":85,"issues":[{"item":"ข้อ","detail":"รายละเอียด","severity":"high"}],"diffs":[{"section":"หมวด","draft":"ร่าง","actual":"จริง","status":"ok"}],"recommendations":[{"priority":1,"action":"แนะนำ","detail":"รายละเอียด"}]}`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: [
+          { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } },
+          { type: 'text', text: prompt }
+        ]}]
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'API Error');
+    const text = data.content?.map(b => b.text||'').join('') || '';
+    result = JSON.parse(text.replace(/```json|```/g,'').trim());
+    renderResult();
+  } catch(e) {
+    showError('เกิดข้อผิดพลาด: ' + e.message);
+  } finally {
+    document.getElementById('loadingArea').style.display = 'none';
+    document.getElementById('analyzeBtn').disabled = false;
+  }
+}
+
+const STATUS = { pass:{label:'ผ่าน',color:'#1a7a4a',bg:'#d4edda',icon:'✅'}, warning:{label:'ควรแก้ไข',color:'#c05621',bg:'#fdebd0',icon:'⚠️'}, fail:{label:'ไม่ผ่าน',color:'#c0392b',bg:'#fadbd8',icon:'❌'} };
+const DIFF   = { ok:{label:'ตรง',color:'#1a7a4a',bg:'#d4edda',icon:'✓'}, missing:{label:'ขาด',color:'#c0392b',bg:'#fadbd8',icon:'❌'}, added:{label:'เพิ่ม',color:'#1a56a0',bg:'#d6e4f7',icon:'➕'}, changed:{label:'เปลี่ยน',color:'#c05621',bg:'#fdebd0',icon:'✏️'} };
+
+function renderResult() {
+  const st = STATUS[result.overallStatus] || STATUS.pass;
+  const score = result.score;
+  const scoreColor = score>=80?'#1a7a4a':score>=60?'#c05621':'#c0392b';
+  const r=30, circ=2*Math.PI*r, dash=(score/100)*circ;
+
+  document.getElementById('resultHeader').innerHTML = `
+    <div style="position:relative;width:80px;height:80px;flex-shrink:0">
+      <svg width="80" height="80" viewBox="0 0 80 80" style="transform:rotate(-90deg)">
+        <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="8"/>
+        <circle cx="40" cy="40" r="30" fill="none" stroke="${scoreColor}" stroke-width="8"
+          stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
+      </svg>
+      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-weight:700;font-size:20px;color:${scoreColor}">${score}</div>
+    </div>
+    <div style="flex:1;min-width:160px">
+      <div class="result-name">${result.coopName}</div>
+      <div class="result-type">${result.coopType}</div>
+      <div class="status-badge" style="background:${st.bg};color:${st.color}">${st.icon} ${st.label}</div>
+    </div>
+    <div class="bars-wrap">
+      ${[['ตรงร่าง',result.draftMatchScore,'#60a5fa'],['ถูกกฎหมาย',result.lawComplianceScore,'#34d399'],['ถูกระเบียบ',result.regulationComplianceScore,'#fbbf24']].map(([l,v,c])=>`
+      <div>
+        <div class="bar-label">${l}</div>
+        <div class="bar-row">
+          <div class="bar-track"><div class="bar-fill" style="width:${v}%;background:${c}"></div></div>
+          <div class="bar-val" style="color:${c}">${v}%</div>
+        </div>
+      </div>`).join('')}
+    </div>`;
+
+  document.getElementById('summaryBox').textContent = result.summary;
+  document.getElementById('tabIssues').textContent = `🚨 ปัญหา (${(result.issues||[]).length})`;
+  document.getElementById('tabRecs').textContent = `💡 แนะนำ (${(result.recommendations||[]).length})`;
+  document.getElementById('resultCard').style.display = 'block';
+  setTab('issues');
+  document.getElementById('resultCard').scrollIntoView({behavior:'smooth'});
+}
+
+function setTab(t) {
+  currentTab = t;
+  ['issues','diffs','recs'].forEach(k => {
+    document.getElementById('tab'+k.charAt(0).toUpperCase()+k.slice(1))?.classList.toggle('active', k===t);
+  });
+  const c = document.getElementById('tabContent');
+
+  if (t === 'issues') {
+    const items = result.issues || [];
+    if (!items.length) { c.innerHTML = '<div class="empty-msg">✅ ไม่พบปัญหา</div>'; return; }
+    const sevMap = { high:{l:'สำคัญมาก',c:'#c0392b',bg:'#fadbd8'}, medium:{l:'ควรแก้',c:'#c05621',bg:'#fdebd0'}, low:{l:'แนะนำ',c:'#1a56a0',bg:'#d6e4f7'} };
+    c.innerHTML = items.map(iss => {
+      const s = sevMap[iss.severity] || sevMap.medium;
+      return `<div class="issue-card"><div><span class="sev-badge" style="background:${s.bg};color:${s.c}">${s.l}</span><span class="issue-title">${iss.item}</span></div><div class="issue-detail">${iss.detail}</div></div>`;
+    }).join('');
+  } else if (t === 'diffs') {
+    const items = result.diffs || [];
+    if (!items.length) { c.innerHTML = '<div class="empty-msg">ไม่มีข้อมูลเปรียบเทียบ</div>'; return; }
+    c.innerHTML = `<table class="diff-table"><thead><tr><th>หมวด/ข้อ</th><th>ร่างมาตรฐาน</th><th>เอกสารจริง</th><th>สถานะ</th></tr></thead><tbody>
+      ${items.map(d => { const dc=DIFF[d.status]||DIFF.ok; return `<tr><td><strong>${d.section}</strong></td><td>${d.draft||'—'}</td><td>${d.actual||'—'}</td><td><span class="diff-badge" style="background:${dc.bg};color:${dc.color}">${dc.icon} ${dc.label}</span></td></tr>`; }).join('')}
+    </tbody></table>`;
+  } else {
+    const items = result.recommendations || [];
+    if (!items.length) { c.innerHTML = '<div class="empty-msg">ไม่มีคำแนะนำ</div>'; return; }
+    c.innerHTML = items.map(r => `<div class="rec-card"><div class="rec-num">${r.priority}</div><div><div class="rec-action">${r.action}</div><div class="rec-detail">${r.detail}</div></div></div>`).join('');
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  el.textContent = '❌ ' + msg;
+  el.style.display = 'block';
+}
+
+function copyResult() {
+  if (!result) return;
+  const st = STATUS[result.overallStatus]||STATUS.pass;
+  const txt = `ผลการตรวจข้อบังคับสหกรณ์\n${'='.repeat(40)}\nชื่อ: ${result.coopName}\nประเภท: ${result.coopType}\nคะแนน: ${result.score}/100\nสถานะ: ${st.icon} ${st.label}\n\nสรุป: ${result.summary}\n\nความเห็นเจ้าหน้าที่:\n${document.getElementById('opinionText').value||'(ไม่มี)'}\n\nวันที่ตรวจ: ${new Date().toLocaleDateString('th-TH')}`;
+  navigator.clipboard.writeText(txt).then(()=>alert('คัดลอกแล้ว!')).catch(()=>alert('ไม่สามารถคัดลอกได้'));
+}
+
+function downloadCSV() {
+  if (!result) return;
+  const st = STATUS[result.overallStatus]||STATUS.pass;
+  const op = document.getElementById('opinionText').value||'';
+  const rows = ['ชื่อสหกรณ์,ประเภท,คะแนน,สถานะ,ตรงร่าง,ถูกกฎหมาย,ถูกระเบียบ,สรุป,ความเห็น,วันที่',
+    `"${result.coopName}","${result.coopType}",${result.score},"${st.label}",${result.draftMatchScore},${result.lawComplianceScore},${result.regulationComplianceScore},"${result.summary}","${op}","${new Date().toLocaleDateString('th-TH')}"`];
+  const blob = new Blob(['\uFEFF'+rows.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `ผลตรวจ_${result.coopName}_${Date.now()}.csv`;
+  a.click();
+}
+</script>
+</body>
+</html>
